@@ -112,4 +112,34 @@ ingress.networking.k8s.io/nginx-wordpress-ingress created
 NAME                      CLASS    HOSTS           ADDRESS           PORTS   AGE
 nginx-wordpress-ingress   <none>   k8s.kozik.net   192.168.100.174   80      96s
 
+[jkozik@dell2 ingresstest]$ kubectl get services -o wide
+NAME              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE     SELECTOR
+kubernetes        ClusterIP   10.96.0.1        <none>        443/TCP        25d     <none>
+nginx-svc         ClusterIP   10.99.145.80     <none>        80/TCP         5d1h    app=nginx-app
+wordpress         NodePort    10.105.26.145    <none>        80:30622/TCP   3d22h   app=wordpress,tier=frontend
+wordpress-mysql   ClusterIP   None             <none>        3306/TCP       3d23h   app=wordpress,tier=mysql
+
+[jkozik@dell2 ingresstest]$ kubectl get service -n ingress-nginx
+NAME                                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             NodePort    10.97.70.29     <none>        80:30140/TCP,443:30023/TCP   3d
+ingress-nginx-controller-admission   ClusterIP   10.111.250.10   <none>        443/TCP                      3d
+
 ```
+The ingress is IP address is any IP address of the cluster.  But the ingress controller service's NodePort address is 30140.  A quick test on the kubectl host can verify the setup.
+```
+[jkozik@dell2 ingresstest]$ curl -H "Host: k8s.kozik.net" 192.168.100.173:30140/nginx
+Hello, NFS Storage NGINX
+
+[jkozik@dell2 ingresstest]$ curl -H "Host: k8s.kozik.net" 192.168.100.173:30140/wordpress
+<!DOCTYPE html>
+<html lang="en-US" class="no-js">
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="profile" href="http://gmpg.org/xfn/11">
+                <script>(function(html){html.className = html.className.replace(/\bno-js\b/,'js')})(document.documentElement);</script>
+<title>WP Test &#8211; Just another WordPress site</title>
+...
+```
+Note:  the curl commands, above, need the Host header filled-in, the ingress controller will return a 404 error if there is not a match to the host name. At this point, I updated my kozik.net DNS entry to include the k8s subdomain.  I assigned it the public IP address of my home network; I setup port forwarding in my home router and the outside world can (temporarily) access http://k8s.kozik.net/wordpress and http://k8s.kozik.net/nginx. 
+The ingress controller is basically an instance of nginx configured to run as a reverse proxy.  Kubernetes has a library of ingress controllers based on familiar projects, eg HAProxy, Apache, F5 BIG-IP, Envoy/Istio, etc.  The nginx one that I use is the default one. 
