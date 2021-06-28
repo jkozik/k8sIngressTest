@@ -74,6 +74,11 @@ NGINX Ingress controller
 192.168.100.174 - - [27/Jun/2021:16:57:04 +0000] "GET /wordpress HTTP/1.1" 200 4736 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36" 909 0.730 [default-wordpress-80] [] 10.68.41.141:80 4736 0.734 200 97bc24777ef031eb3033381bed59350a
 192.168.100.174 - - [27/Jun/2021:16:59:39 +0000] "GET /nginx HTTP/1.1" 200 25 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36" 905 0.009 [default-nginx-svc-80] [] 10.68.41.140:80 25 0.008 200 ebb6f64ffa561468467177ddb98ba2d4
 ```
+### References
+I followed the bare-metal steps in the github entry for the nginx ingress controller:
+- https://kubernetes.github.io/ingress-nginx/deploy/
+
+
 ## Apply ingress resource for wordpress and nginx-svc.
 
 Next, apply the following to create an ingress resource for wordpress and nginx-svc.  I created a temporary subdomain called k8s.kozk.net.  The ingress resource below, looks at the path in the URL and redirects to the appropriate service.  
