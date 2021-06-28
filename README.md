@@ -51,4 +51,65 @@ ingress-nginx-controller-55bc4f5576-wjsqt   1/1     Running     0          11m
 NAME                                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
 ingress-nginx-controller             NodePort    10.97.70.29     <none>        80:30140/TCP,443:30023/TCP   2d21h
 ingress-nginx-controller-admission   ClusterIP   10.111.250.10   <none>        443/TCP                      2d21h
+
+[jkozik@dell2 ingresstest]$ kubectl get pods -n ingress-nginx
+NAME                                        READY   STATUS      RESTARTS   AGE
+ingress-nginx-admission-create-cglhn        0/1     Completed   0          2d23h
+ingress-nginx-admission-patch-6dzqj         0/1     Completed   1          2d23h
+ingress-nginx-controller-55bc4f5576-wjsqt   1/1     Running     0          2d23h
+
+```
+It is useful to note that for any ingress traffic, the following command views the log files.  This was useful when debugging my setup
+```
+[jkozik@dell2 ingresstest]$ kubectl logs -n ingress-nginx ingress-nginx-controller-55bc4f5576-wjsqt
+-------------------------------------------------------------------------------
+NGINX Ingress controller
+  Release:       v0.46.0
+  Build:         6348dde672588d5495f70ec77257c230dc8da134
+  Repository:    https://github.com/kubernetes/ingress-nginx
+  nginx version: nginx/1.19.6
+
+-------------------------------------------------------------------------------
+192.168.100.174 - - [27/Jun/2021:16:57:04 +0000] "GET /wordpress HTTP/1.1" 200 4736 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36" 909 0.730 [default-wordpress-80] [] 10.68.41.141:80 4736 0.734 200 97bc24777ef031eb3033381bed59350a
+192.168.100.174 - - [27/Jun/2021:16:59:39 +0000] "GET /nginx HTTP/1.1" 200 25 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36" 905 0.009 [default-nginx-svc-80] [] 10.68.41.140:80 25 0.008 200 ebb6f64ffa561468467177ddb98ba2d4
+```
+Next, apply the following to create an ingress resource for wordpress and nginx-svc.  I created a temporary subdomain called k8s.kozk.net.  The ingress resource below, looks at the path in the URL and redirects to the appropriate service.  
+- k8s.kozik.net/wordpress redirects to service wordpress
+- k8s.kozik.net/nginx redirects to service nginx-svc
+```
+cat <<EOF >>nginx-wordpress-ingress.yml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-wordpress-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: k8s.kozik.net
+    http:
+      paths:
+      - path: /nginx
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-svc
+            port:
+              number: 80
+      - path: /wordpress
+        pathType: Prefix
+        backend:
+          service:
+            name: wordpress
+            port:
+              number: 80
+EOF
+
+[jkozik@dell2 ingresstest]$ kubectl apply -f nginx-wordpress-ingress.yml
+ingress.networking.k8s.io/nginx-wordpress-ingress created
+
+[jkozik@dell2 ingresstest]$ kubectl get ingress -o wide
+NAME                      CLASS    HOSTS           ADDRESS           PORTS   AGE
+nginx-wordpress-ingress   <none>   k8s.kozik.net   192.168.100.174   80      96s
+
 ```
